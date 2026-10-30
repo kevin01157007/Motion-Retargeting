@@ -19,7 +19,7 @@ Quat multiply(Quat a, Quat b) {
 
 Quat axisAngle(Vec3 axis, double radians) {
     // TODO 1c: normalize axis, use cos(theta/2) and sin(theta/2).
-    const double axis_length = std::hypot(std::hypot(axis.x, axis.y), axis.z);
+    const double axis_length = length(axis);
     Vec3 normalized_axis{};
     if (axis_length > 1e-12) {
         normalized_axis = {axis.x / axis_length, axis.y / axis_length, axis.z / axis_length};

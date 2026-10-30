@@ -13,7 +13,7 @@ WorldPose forwardKinematics(const Skeleton& skeleton, const Pose& pose) {
         const auto& j = skeleton.joints[i];
         world.position[i] = j.parent < 0 ? pose.rootTranslation + j.offset
                                          : world.position[j.parent] + rotate(world.rotation[j.parent], j.offset);
-        world.rotation[i] = j.parent < 0 ? pose.localRotation[i]
+        world.rotation[i] = j.parent < 0 ? normalize(pose.localRotation[i])
                                          : normalize(multiply(world.rotation[j.parent], pose.localRotation[i]));
     }
     return world;
