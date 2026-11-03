@@ -66,14 +66,30 @@ The target rig uses the same joint hierarchy but with naming prefixed by B_, and
 Several design choices were necessary to make the motion transfer robust and consistent with the assignment specification:
 
 ### 1. Quaternion math
+![alt text](assets/norm_mul.png)
+
+`normalize` computes the quaternion's Euclidean length and divides each component by it, producing a unit quaternion for rotation composition. To avoid division by a near-zero length, it returns the default quaternion (the identity) when the length is at most $10^{-12}$. `multiply` implements the Hamilton product, combining the scalar and vector components; the order is significant, with $a * b$ applying $b$ first and then $a$.
+![alt text](assets/axisAngle_rotate.png)
+
+`axisAngle` first normalizes the rotation axis, then forms $(\cos(\theta/2),\ \mathbf{n}\sin(\theta/2))$, where $\theta$ is in radians. `rotate` treats the vector as the pure quaternion $(0,\mathbf{v})$ and computes $q(0,\mathbf{v})\bar q$, where $\bar q$ is the conjugate of $q$; the resulting vector components are the rotated vector. This rotation formula assumes $q$ is a unit quaternion, so rotations are normalized when needed before use.
 
 ### 2. Forward kinematics
+![alt text](assets/fk.png)
+
+`forwardKinematics` walks joints in parent-before-child order and stores each joint's world-space position and rotation. A root is placed at `rootTranslation + offset` and uses its normalized local rotation. For a child, the parent world rotation transforms the child's offset before it is added to the parent position; the child's world rotation is the normalized product of the parent world rotation and its local rotation.
 
 ### 3. CCD inverse kinematics
+![alt text](assets/rotation.png)
 
+For each adjustable joint, the solver uses forward kinematics to find the pivot, current end-effector direction, and target direction in world space. It normalizes the directions, clamps their dot product to $[-1,1]$, and uses the cross product as the correction axis and $\arccos$ of the clamped dot product as the angle. If the directions are already aligned, no update is needed; if they point in opposite directions, a perpendicular axis is chosen so a 180-degree correction can still be formed. Zero-length or invalid direction vectors are skipped.
+
+![alt text](assets/ccd.png)
+
+`solveCCD` adjusts the end effector's parent and then that joint's parent, skipping the root so the body's root transform is not changed. Before and after updates it recomputes FK and stops once the end effector is within $1\,\text{cm}$ of the target, or when the requested iteration limit is reached. Each world-space correction is conjugated by the parent world rotation to express it in the joint's local frame, then multiplied into and normalized with the joint's existing local rotation. FK is recomputed for each joint update so subsequent corrections use the updated pose.
 ### 4. Retargeting
+![alt text](assets/Retargeting.png)
 
-
+`retargetFrame` scales the source root translation by the supplied `rootScale` and builds a lookup from source joint names to their indices. For every target joint, it removes the required `B_` prefix, finds the corresponding source joint by name, and copies that source pose's local rotation after normalization; it does not rely on the two skeletons having matching joint indices. The target skeleton's own offsets are unchanged, so its bone lengths are preserved. Missing prefixes, unmatched source joints, or missing source-pose rotations produce explicit errors.
 ## FK/IK checks
 
 The implementation was validated through the following checks:
