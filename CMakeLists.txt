@@ -59,3 +59,21 @@ add_test(NAME load_and_export
     COMMAND hw2 "${CMAKE_CURRENT_SOURCE_DIR}/data/source.motion"
                 "${CMAKE_CURRENT_SOURCE_DIR}/data/target.rig"
                 "${CMAKE_CURRENT_BINARY_DIR}/smoke.html" --frames 3)
+# --- FK validation test ---
+add_executable(fk_check
+    tests/fk_check.cpp
+    src/math.cpp
+    src/fk.cpp
+)
+target_include_directories(fk_check PRIVATE src)
+if(MSVC)
+    target_compile_options(fk_check PRIVATE /W4)
+else()
+    target_compile_options(fk_check PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+add_test(NAME fk_check COMMAND fk_check)
+
+# --- IK validation test ---
+add_executable(ik_check tests/ik_check.cpp src/math.cpp src/fk.cpp src/ik.cpp)
+target_include_directories(ik_check PRIVATE src)
+add_test(NAME ik_check COMMAND ik_check)
